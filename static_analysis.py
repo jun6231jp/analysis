@@ -8,14 +8,13 @@ from argparse import ArgumentParser
 def get_option():
     argparser = ArgumentParser()
     argparser.add_argument('-c', '--cycle', type=int,default=10000,help='learning cycle(default 10000)')
-    argparser.add_argument('-l', '--layer', type=int,default=5,help='layer num 2-9(default 5)')
-    argparser.add_argument('-bs', '--bsratio', type=int,default=5,help='batch size = num of error kinds x bsratio(default 5)')
-    argparser.add_argument('-th', '--threashold', type=float,default=0.8,help='model accuracy threashold(default 0.8)')
     argparser.add_argument('-kn', '--knearest',action='store_true',help='K-nearest mode')
     argparser.add_argument('-rbf', '--rbfkernel',action='store_true',help='RBF mode')
     argparser.add_argument('-lsvm', '--linearsvm',action='store_true',help='linear SVM mode')
     argparser.add_argument('-ksvm', '--kernelsvm',action='store_true',help='kernel SVM mode')
     argparser.add_argument('-dl', '--deeplearning',action='store_true',help='deeplearning mode(default)')
+    argparser.add_argument('-l', '--layer', type=int,default=5,help='layer num 2-9(default 5)')
+    argparser.add_argument('-bs', '--bsratio', type=int,default=5,help='batch size = num of error kinds x bsratio(default 5)')
     argparser.add_argument('-wd', '--weightdecay', type=float,default=0.000001,help='weight decay coefficient(default 0.000001)')
     argparser.add_argument('-rd', '--ridge',action='store_true',help='enable ridge(default)')
     argparser.add_argument('-ls', '--lasso', action='store_true',help='enable lasso')
@@ -36,14 +35,12 @@ def get_option():
     argparser.add_argument('-rmspg', '--rmspropgraves',action='store_true',help='')
     argparser.add_argument('-smo', '--smorms3',action='store_true',help='')
     argparser.add_argument('-sgd', '--sgd',action='store_true', help='')
-    argparser.add_argument('-f', '--force',action='store_true', help='force to update result')
     return argparser.parse_args()
 
 args = get_option()
 rep=args.cycle #学習繰り返し回数
 bs_ratio=args.bsratio #バッチサイズ比率
 decay=args.weightdecay #Ridge回帰の重み減衰係数
-th=args.threashold #モデルの精度判定閾値
 layer=args.layer #層数
 if layer < 2:
     layer=2
@@ -57,7 +54,6 @@ if args.relu:
     func="relu"
 else :
     func="sigmoid"
-#mode: dl->pca->k-nearest->rbf->lsvm->ksvm
 mode=0
 if args.knearest:
     mode=1
