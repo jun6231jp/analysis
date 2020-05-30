@@ -68,8 +68,8 @@ elif args.linearsvm:
 elif args.kernelsvm:
     mode=4
 input_width=0;
-DATA="/root/py/data/"
-RES="/root/py/result/"
+DATA="/home/user/py/data/"
+RES="/home/user/py/result/"
 import os
 os.makedirs(RES,exist_ok=True)
 log = open(RES+"log.txt","w")
