@@ -205,7 +205,6 @@ uniq_data=[]
 
 #K-nearest mode
 if mode == 1:
-    from sklearn import datasets
     from sklearn.model_selection import LeaveOneOut
     from sklearn.metrics import accuracy_score
     import matplotlib
@@ -227,7 +226,7 @@ if mode == 1:
             return self._target_data[nearest_index]
         def _distance(self, p0, p1):
             return np.sum((p0 - p1) ** 2)
-    predicted_labels = []
+    pred_labels = []
     loo = LeaveOneOut()
     log.write("learning and cross validation ..\n")
     for train,test in loo.split(datas):
