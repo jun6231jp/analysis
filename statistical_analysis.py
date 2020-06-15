@@ -227,7 +227,6 @@ if mode == 1:
             return self._target_data[nearest_index]
         def _distance(self, p0, p1):
             return np.sum((p0 - p1) ** 2)
-
     predicted_labels = []
     loo = LeaveOneOut()
     log.write("learning and cross validation ..\n")
@@ -242,10 +241,9 @@ if mode == 1:
             test_data.append(datas[j])
         model = NearestNeighbors()
         model.fit(train_data, target_data)
-        predicted_label = model.predict(test_data[0])
-        predicted_labels.append(predicted_label)
-
-    accuracy = accuracy_score(labels, predicted_labels)
+        pred_label = model.predict(test_data[0])
+        pred_labels.append(pred_label)
+    accuracy = accuracy_score(labels, pred_labels)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #RBF mode
@@ -257,8 +255,8 @@ elif mode == 2:
     log.write("learning ...\n")
     clf_result.fit(train_datas, train_labels)
     log.write("validation ..\n")
-    pre=clf_result.predict(valid_datas)
-    accuracy=metrics.accuracy_score(valid_labels,pre)
+    pred_labels=clf_result.predict(valid_datas)
+    accuracy=metrics.accuracy_score(valid_labels,pred_labels)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Linear SVM mode
@@ -267,11 +265,10 @@ elif mode == 3:
     svc = SVC(kernel='linear', random_state=0)
     log.write("learning ...\n")
     svc.fit(train_datas, train_labels)
-
     from sklearn.metrics import accuracy_score
     log.write("validation ..\n")
-    y_test_pred = svc.predict(valid_datas)
-    accuracy = accuracy_score(valid_labels, y_test_pred)
+    pred_labels = svc.predict(valid_datas)
+    accuracy = accuracy_score(valid_labels, pred_labels)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Kernel SVM mode
@@ -280,11 +277,10 @@ elif mode == 4:
     svc = SVC(kernel='poly' , C=1.0,class_weight='balanced', random_state=0)
     log.write("learning ...\n")
     svc.fit(train_datas, train_labels)
-
     from sklearn.metrics import accuracy_score
     log.write("validation ..\n")
-    y_test_pred = svc.predict(valid_datas)
-    accuracy = accuracy_score(valid_labels, y_test_pred)
+    pred_labels = svc.predict(valid_datas)
+    accuracy = accuracy_score(valid_labels, pred_labels)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Deep Learning mode
@@ -442,11 +438,11 @@ else:
     #検査データでモデル精度検証
     xv = Variable(np.array(valid_datas))
     tv = net.fwd(xv)
-    ans = tv.data
-    nrow, ncol = ans.shape
+    pred_labels = tv.data
+    nrow, ncol = pred_labels.shape
     ok = 0
     for i in range(nrow):
-        cls = np.argmax(ans[i,:])
+        cls = np.argmax(pred_labels[i,:])
         if cls == valid_labels[i]:
             ok += 1
     accuracy=(ok * 1.0)/ nrow
