@@ -1,7 +1,6 @@
 
 # coding: utf-8
 
-# In[2]:
 
 
 from argparse import ArgumentParser
@@ -13,9 +12,12 @@ def get_option():
     argparser.add_argument('-lsvm', '--linearsvm',action='store_true',help='linear SVM mode')
     argparser.add_argument('-ksvm', '--kernelsvm',action='store_true',help='kernel SVM mode')
     argparser.add_argument('-dl', '--deeplearning',action='store_true',help='deeplearning mode(default)')
+    argparser.add_argument('-kp', '--kparam', type=int,default=50,help='K-param in K-nearest = num of error kinds x K(default 50)')
+    argparser.add_argument('-gm', '--gamma', type=int,default=1,help='gamma-param in RBF(default 1)')
+    argparser.add_argument('-cp', '--cparam', type=int,default=1,help='C-param in kernel SVM(default 1)')
+    argparser.add_argument('-wd', '--weightdecay', type=float,default=0.000001,help='weight decay coefficient(default 0.000001)')
     argparser.add_argument('-l', '--layer', type=int,default=5,help='layer num 2-9(default 5)')
     argparser.add_argument('-bs', '--bsratio', type=int,default=5,help='batch size = num of error kinds x bsratio(default 5)')
-    argparser.add_argument('-wd', '--weightdecay', type=float,default=0.000001,help='weight decay coefficient(default 0.000001)')
     argparser.add_argument('-rd', '--ridge',action='store_true',help='enable ridge(default)')
     argparser.add_argument('-ls', '--lasso', action='store_true',help='enable lasso')
     argparser.add_argument('-s', '--sigmoid',action='store_true',help='default')
@@ -54,6 +56,7 @@ if args.relu:
     func="relu"
 else :
     func="sigmoid"
+
 mode=0
 if args.knearest:
     mode=1
@@ -64,8 +67,8 @@ elif args.linearsvm:
 elif args.kernelsvm:
     mode=4
 input_width=0;
-DATA="/home/user/py/data/"
-RES="/home/user/py/result/"
+DATA="/root/py/data/"
+RES="/root/py/result/"
 import os
 os.makedirs(RES,exist_ok=True)
 log = open(RES+"log.txt","w")
@@ -170,8 +173,6 @@ log.write("data extended\n")
 from chainer.datasets import split_dataset_random
 dataset, null= split_dataset_random(dataset, len(dataset) , seed=0)
 log.write("data randomized\n")
-
-
 #データセット全体を 7 : 3 の比率でランダム分割し、学習用、検証用のデータセットとする
 from chainer.datasets import split_dataset_random
 n_train = int(len(dataset) * 0.7)
@@ -205,6 +206,7 @@ uniq_data=[]
 
 #K-nearest mode
 if mode == 1:
+    from sklearn import datasets
     from sklearn.model_selection import LeaveOneOut
     from sklearn.metrics import accuracy_score
     import matplotlib
@@ -226,36 +228,26 @@ if mode == 1:
             return self._target_data[nearest_index]
         def _distance(self, p0, p1):
             return np.sum((p0 - p1) ** 2)
-    pred_labels = []
-    loo = LeaveOneOut()
-    log.write("learning and cross validation ..\n")
-    for train,test in loo.split(datas):
-        train_data = []
-        target_data = []
-        test_data = []
-        for i in train:
-            train_data.append(datas[i])
-            target_data.append(labels[i])
-        for j in test:
-            test_data.append(datas[j])
-        model = NearestNeighbors()
-        model.fit(train_data, target_data)
-        pred_label = model.predict(test_data[0])
-        pred_labels.append(pred_label)
-    accuracy = accuracy_score(labels, pred_labels)
+
+    predicted_labels = []
+    from sklearn.neighbors import KNeighborsClassifier
+    k_nearest= KNeighborsClassifier(n_neighbors = args.kparam*kinds)
+    k_nearest.fit(train_datas, train_labels)
+    predicted_labels = k_nearest.predict(valid_datas)
+    accuracy = accuracy_score(labels, predicted_labels)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #RBF mode
 elif mode == 2:
     from sklearn import linear_model, metrics
     from sklearn.kernel_approximation import RBFSampler
-    rbf_feature = RBFSampler(gamma=1, n_components=input_width, random_state=1)
+    rbf_feature = RBFSampler(gamma=args.gamma, n_components=input_width, random_state=1)
     clf_result=linear_model.SGDClassifier(loss="hinge")
     log.write("learning ...\n")
     clf_result.fit(train_datas, train_labels)
     log.write("validation ..\n")
-    pred_labels=clf_result.predict(valid_datas)
-    accuracy=metrics.accuracy_score(valid_labels,pred_labels)
+    pre=clf_result.predict(valid_datas)
+    accuracy=metrics.accuracy_score(valid_labels,pre)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Linear SVM mode
@@ -264,22 +256,24 @@ elif mode == 3:
     svc = SVC(kernel='linear', random_state=0)
     log.write("learning ...\n")
     svc.fit(train_datas, train_labels)
+
     from sklearn.metrics import accuracy_score
     log.write("validation ..\n")
-    pred_labels = svc.predict(valid_datas)
-    accuracy = accuracy_score(valid_labels, pred_labels)
+    y_test_pred = svc.predict(valid_datas)
+    accuracy = accuracy_score(valid_labels, y_test_pred)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Kernel SVM mode
 elif mode == 4:
     from sklearn.svm import SVC
-    svc = SVC(kernel='poly' , C=1.0,class_weight='balanced', random_state=0)
+    svc = SVC(kernel='poly' , C=args.cparam,class_weight='balanced', random_state=0)
     log.write("learning ...\n")
     svc.fit(train_datas, train_labels)
+
     from sklearn.metrics import accuracy_score
     log.write("validation ..\n")
-    pred_labels = svc.predict(valid_datas)
-    accuracy = accuracy_score(valid_labels, pred_labels)
+    y_test_pred = svc.predict(valid_datas)
+    accuracy = accuracy_score(valid_labels, y_test_pred)
     log.write("accuracy :"+str(accuracy)+"\n")
 
 #Deep Learning mode
@@ -377,7 +371,7 @@ else:
     elif args.smorms3:
         optimizer = optimizers.SMORMS3()
     else:
-        optimizer = optimizers.AdaDelta() #0.81
+        optimizer = optimizers.AdaDelta()
 
     optimizer.setup(net)
 
@@ -437,11 +431,11 @@ else:
     #検査データでモデル精度検証
     xv = Variable(np.array(valid_datas))
     tv = net.fwd(xv)
-    pred_labels = tv.data
-    nrow, ncol = pred_labels.shape
+    ans = tv.data
+    nrow, ncol = ans.shape
     ok = 0
     for i in range(nrow):
-        cls = np.argmax(pred_labels[i,:])
+        cls = np.argmax(ans[i,:])
         if cls == valid_labels[i]:
             ok += 1
     accuracy=(ok * 1.0)/ nrow
